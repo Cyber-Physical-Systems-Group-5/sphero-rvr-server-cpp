@@ -1,12 +1,12 @@
 set(includeDir "${PROJECT_SOURCE_DIR}/include")
 
 set(headers
-        "${includeDir}/CommHandler.hpp"
+        "${includeDir}/CommunicationHandler.hpp"
         "${includeDir}/NetworkHelper.hpp"
 )
 
 set(sources
-        "CommHandler.cpp"
+        "CommunicationHandler.cpp"
 )
 
 add_library(comm_handler "${headers}" "${sources}")
