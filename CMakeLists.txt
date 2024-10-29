@@ -6,6 +6,14 @@ option(BUILD_TESTS "Build tests" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(SIMPLE_SOCKET_BUILD_TESTS OFF)
+FetchContent_Declare(
+        simple_socket
+        GIT_REPOSITORY https://github.com/markaren/SimpleSocket.git
+        GIT_TAG e0e989bdd52137d743a4599e25167d5681a0de00
+)
+FetchContent_MakeAvailable(simple_socket)
+
 add_subdirectory(src)
 
 if (BUILD_TESTS)
@@ -19,14 +27,6 @@ if (BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif ()
-
-set(SIMPLE_SOCKET_BUILD_TESTS OFF)
-FetchContent_Declare(
-        simple_socket
-        GIT_REPOSITORY https://github.com/markaren/SimpleSocket.git
-        GIT_TAG e0e989bdd52137d743a4599e25167d5681a0de00
-)
-FetchContent_MakeAvailable(simple_socket)
 
 
 add_executable(rvr_server main.cpp)
