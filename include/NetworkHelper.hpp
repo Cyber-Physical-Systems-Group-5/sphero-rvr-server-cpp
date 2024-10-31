@@ -5,6 +5,13 @@
 #ifndef SPHERO_RVR_SERVER_CPP_NETWORKHELPER_HPP
 #define SPHERO_RVR_SERVER_CPP_NETWORKHELPER_HPP
 #include <array>
+#include <ifaddrs.h>
+#include <bits/socket.h>
+#include <netinet/in.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/types.h>
 
 enum class byte_order {
     LITTLE, BIG

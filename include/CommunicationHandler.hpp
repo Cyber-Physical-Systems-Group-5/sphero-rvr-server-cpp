@@ -5,9 +5,10 @@
 #ifndef SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 #define SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 
-#include "simple_socket/UnixDomainSocket.hpp"
+#include "simple_socket/TCPSocket.hpp"
 #include <vector>
 #include <thread>
+#include <queue>
 
 using namespace simple_socket;
 
@@ -19,14 +20,26 @@ using namespace simple_socket;
  */
 class CommunicationHandler {
 private:
-    UnixDomainServer server;                        ///< The Unix domain server instance used for accepting connections.
+    TCPServer server;                               ///< The TCP server instance used for accepting connections.
     std::unique_ptr<SimpleConnection> connection;   ///< The active connection with the client.
     std::jthread connectionThread;                  ///< Thread for handling incoming connections.
     std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
+    std::queue<std::string> messageQueue;           ///< Queue for storing received messages.
 
-    void acceptConnection();
+    void handleConnection();
+    /**
+     * @brief Reads data from the connected client.
+     *
+     * @return A string containing the data read from the client. Returns an empty string if no connection exists.
+     */
+    std::string read();
 
+    /**
+     * @brief Closes the connection and stops the thread.
+     */
     void close();
+
+
 
 public:
     unsigned int connectionCount = 0;
@@ -37,17 +50,17 @@ public:
      *
      * @param domain The domain path for the Unix domain socket.
      */
-    explicit CommunicationHandler(std::string &domain);
+    explicit CommunicationHandler(uint16_t port);
+
+    /**
+     * @brief Reads the latest message from the message queue.
+     *
+     * @return The latest message from the queue, "" if empty.
+     */
+    std::string getLatestMessage();
 
     // still need to implement this function
     void write(const std::string& message);
-
-    /**
-     * @brief Reads data from the connected client.
-     *
-     * @return A string containing the data read from the client. Returns an empty string if no connection exists.
-     */
-    std::string read();
     ~CommunicationHandler();
 };
 
