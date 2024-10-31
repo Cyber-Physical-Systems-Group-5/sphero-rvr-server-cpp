@@ -14,3 +14,4 @@ target_include_directories(comm_handler
         PRIVATE "${includeDir}"
         PRIVATE ${simple_socket_SOURCE_DIR}/include
 )
+target_link_libraries(comm_handler PRIVATE simple_socket)
