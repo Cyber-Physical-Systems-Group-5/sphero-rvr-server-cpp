@@ -19,7 +19,7 @@ TEST_CASE("Message from string", "[message]") {
     std::string image = loadImage(imagePath);
 
     Message message = Message::fromString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
-    message.setImage(image);
+    message.setImageFromString(image);
 
     REQUIRE(message.getSpeed() == 100);
     auto directions = message.getDirections();
@@ -36,7 +36,7 @@ TEST_CASE("Message to string", "[message]") {
     std::string image = loadImage(imagePath);
 
     Message message = Message(100, {Direction::FORWARD, Direction::LEFT});
-    message.setImage(image);
+    message.setImageFromString(image);
 
     std::string str = message.toString();
     Message newMessage = Message::fromString(str);

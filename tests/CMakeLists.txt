@@ -4,6 +4,7 @@ add_test(NAME commhandler_test COMMAND commhandler_test)
 target_include_directories(commhandler_test
         PRIVATE ${simple_socket_SOURCE_DIR}/include
         PRIVATE ${PROJECT_SOURCE_DIR}/include
+        PRIVATE ${PROJECT_SOURCE_DIR}/src/util
 )
 target_link_libraries(commhandler_test PRIVATE
         comm_handler
