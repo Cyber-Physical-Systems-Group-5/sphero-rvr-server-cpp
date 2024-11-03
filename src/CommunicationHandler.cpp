@@ -1,6 +1,6 @@
 #include <string>
+#include <fstream>
 #include "../include/CommunicationHandler.hpp"
-#include "../include/NetworkHelper.hpp"
 
 CommunicationHandler::CommunicationHandler(uint16_t port) : server(port, 1) {
     connectionThread = std::jthread(&CommunicationHandler::handleConnection, this);
@@ -14,31 +14,48 @@ void CommunicationHandler::close() {
     connection->close();
 }
 
-std::string CommunicationHandler::read() {
+void CommunicationHandler::read() {
     if (!connection) {
-        return "";
+        return;
     }
 
     std::vector<unsigned char> buffer(1024);
     std::string response;
     int bytesRead = 0;
 
-    // Loop until no more data is available
+    // Store any remaining part of a message from previous reads
+    static std::string leftover;
+
+    // Loop to accumulate data until we reach a terminator
     while ((bytesRead = connection->read(buffer)) > 0) {
         response.append(buffer.begin(), buffer.begin() + bytesRead);
 
-        // Stop if the data received is less than the buffer size, meaning it's the last chunk
-        if (bytesRead < buffer.size()) {
-            break;
-        }
-    }
+        // Look for the terminator character in the response
+        size_t pos = 0;
+        while ((pos = response.find('|')) != std::string::npos) {
+            std::string completeMessage = leftover + response.substr(0, pos);
+            leftover.clear();
+            response.erase(0, pos + 1); // Remove processed part from response
 
-    return response;
+            // Process complete Message
+            Message receivedMessage = Message::fromString(completeMessage);
+            messageQueue.push(receivedMessage);
+        }
+
+        // If no terminator found, add data to leftover and wait for the next chunk
+        leftover += response;
+        response.clear();
+    }
 }
 
-void CommunicationHandler::write(const std::string &message) {
+void CommunicationHandler::write(const Message& message) {
+    if (!connection) {
+        return;
+    }
+    // convert the message to a string
+    auto messageString = message.toString() + "|";
     // send the message
-    connection->write(message);
+    connection->write(message.toString());
 }
 
 void CommunicationHandler::handleConnection() {
@@ -49,19 +66,16 @@ void CommunicationHandler::handleConnection() {
     connectionCount++;
 
     while (isRunning) {
-        std::string message = read();
-        if (!message.empty()) {
-            messageQueue.push(message);
-        }
+        read();
     }
 }
 
-std::string CommunicationHandler::getLatestMessage() {
+Message CommunicationHandler::getLatestMessage() {
     if (messageQueue.empty()) {
-        return "";
+        return {};
     }
 
-    std::string message = messageQueue.front();
+    Message message = messageQueue.front();
     messageQueue.pop();
     return message;
 }

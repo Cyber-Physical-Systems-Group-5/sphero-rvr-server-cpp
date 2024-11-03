@@ -6,6 +6,7 @@
 #define SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 
 #include "simple_socket/TCPSocket.hpp"
+#include "Message.hpp"
 #include <vector>
 #include <thread>
 #include <queue>
@@ -24,15 +25,13 @@ private:
     std::unique_ptr<SimpleConnection> connection;   ///< The active connection with the client.
     std::jthread connectionThread;                  ///< Thread for handling incoming connections.
     std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
-    std::queue<std::string> messageQueue;           ///< Queue for storing received messages.
+    std::queue<Message> messageQueue;           ///< Queue for storing received messages.
 
     void handleConnection();
     /**
-     * @brief Reads data from the connected client.
-     *
-     * @return A string containing the data read from the client. Returns an empty string if no connection exists.
+     * @brief Reads data from the connected client and processes it.
      */
-    std::string read();
+    void read();
 
     /**
      * @brief Closes the connection and stops the thread.
@@ -57,10 +56,10 @@ public:
      *
      * @return The latest message from the queue, "" if empty.
      */
-    std::string getLatestMessage();
+    Message getLatestMessage();
 
     // still need to implement this function
-    void write(const std::string& message);
+    void write(const Message& message);
     ~CommunicationHandler();
 };
 
