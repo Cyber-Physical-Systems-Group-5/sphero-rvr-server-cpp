@@ -1,8 +1,8 @@
 #ifndef RVR_SERVER_MESSAGE_HPP
 #define RVR_SERVER_MESSAGE_HPP
 
+#include <set>
 #include "json.hpp"
-#include "NetworkHelper.hpp"
 #include "base64.hpp"
 
 enum class Direction {
@@ -40,9 +40,10 @@ public:
         return image;
     }
 
-    void setImage(const std::optional<std::string> &image) {
+    void setImageFromString(const std::string &image) {
         Message::image = image;
     }
+
     Message() = default;
 
     Message(uint8_t speed, std::vector<Direction> directions) : speed(speed), directions(std::move(directions)), image(std::nullopt) {}
@@ -95,6 +96,19 @@ public:
             json["image"] = base64Image;
         }
         return json.dump();
+    }
+
+    bool operator==(const Message &rhs) const {
+        // compare directions as a set
+        std::set<Direction> lhsSet(directions.begin(), directions.end());
+        std::set<Direction> rhsSet(rhs.directions.begin(), rhs.directions.end());
+        return speed == rhs.speed &&
+               lhsSet == rhsSet &&
+               image == rhs.image;
+    }
+
+    bool operator!=(const Message &rhs) const {
+        return !(rhs == *this);
     }
 
 
