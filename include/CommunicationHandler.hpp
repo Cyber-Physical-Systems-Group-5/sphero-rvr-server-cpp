@@ -15,9 +15,20 @@ using namespace simple_socket;
 
 /**
  * @class CommunicationHandler
- * @brief Handles communication over Unix domain sockets, managing connections and providing
- *        read/write functionality. This class uses threading to handle incoming connections
- *        asynchronously.
+ * @brief Manages TCP communication with connected clients, supporting asynchronous read and write operations
+ *        over TCP. This class is designed to handle incoming messages in a structured format
+ *        and maintains an internal message queue for message retrieval.
+ *
+ * ## Message Format
+ * Messages sent to this handler must follow the specified JSON-like structure for proper parsing:
+ * ```
+ * {
+ *   speed: uint8_t,                  // Speed of the device, expected as an unsigned 8-bit integer
+ *   directions: ["forward", "backward", "left", "right"], // Direction command, specified as one of the valid strings
+ *   image: "base64_encoded_string"    // Image data encoded in Base64 format
+ * }
+ * ```
+ * Any message not conforming to this format will be disregarded or may cause parsing errors.
  */
 class CommunicationHandler {
 private:
@@ -27,9 +38,13 @@ private:
     std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
     std::queue<Message> messageQueue;           ///< Queue for storing received messages.
 
+    /**
+     * @brief Handles incoming client connections and assigns them to the connection thread.
+     */
     void handleConnection();
     /**
-     * @brief Reads data from the connected client and processes it.
+     * @brief Reads data from the connected client, processes it, and enqueues parsed messages.
+     *        This method is executed within the connection thread.
      */
     void read();
 
@@ -44,21 +59,26 @@ public:
     unsigned int connectionCount = 0;
 
     /**
-     * @brief Constructs a CommunicationHandler and initializes a UnixDomainServer.
-     *        Also spawns a thread to handle incoming connections.
+     * @brief Initializes a CommunicationHandler instance on a specified TCP port, setting up
+     *        the server and spawning a thread to handle incoming connections asynchronously.
      *
-     * @param domain The domain path for the Unix domain socket.
+     * @param port The TCP port to bind the server for incoming connections.
      */
     explicit CommunicationHandler(uint16_t port);
 
     /**
-     * @brief Reads the latest message from the message queue.
+     * @brief Retrieves the latest processed message from the internal message queue.
+     *        If the queue is empty, returns an empty Message object.
      *
-     * @return The latest message from the queue, "" if empty.
+     * @return The latest available message in the queue.
      */
     Message getLatestMessage();
 
-    // still need to implement this function
+    /**
+     * @brief Sends a message to the connected client. If no client is connected, the message is ignored.
+     *
+     * @param message The message to send over the active connection.
+     */
     void write(const Message& message);
     ~CommunicationHandler();
 };
