@@ -20,15 +20,28 @@ using namespace simple_socket;
  *        and maintains an internal message queue for message retrieval.
  *
  * ## Message Format
- * Messages sent to this handler must follow the specified JSON-like structure for proper parsing:
+ * Messages sent to this handler must be serialized using Protocol Buffers based on the defined `ProtoMessage` schema:
  * ```
- * {
- *   speed: uint8_t,                  // Speed of the device, expected as an unsigned 8-bit integer
- *   directions: ["forward", "backward", "left", "right"], // Direction command, specified as one of the valid strings
- *   image: "base64_encoded_string"    // Image data encoded in Base64 format
+ * syntax = "proto3";
+ *
+ * package proto;
+ *
+ * message ProtoMessage {
+ *
+ *   enum Direction {
+ *     FORWARD = 0;
+ *     BACKWARD = 1;
+ *     RIGHT = 2;
+ *     LEFT = 3;
+ *   }
+ *
+ *   bytes image = 1;
+ *   uint32 speed = 2;
+ *   repeated Direction directions = 3;
+ *
  * }
  * ```
- * Any message not conforming to this format will be disregarded or may cause parsing errors.
+ * Any message not conforming to this Protocol Buffers schema will be disregarded or may cause parsing errors.
  */
 class CommunicationHandler {
 private:
