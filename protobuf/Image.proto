@@ -1,0 +1,12 @@
+
+syntax = "proto3";
+
+package proto;
+
+message ProtoMessage {
+
+  bytes image = 1;
+  uint32 speed = 2;
+  repeated string directions = 3;
+
+}
