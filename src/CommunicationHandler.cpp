@@ -20,31 +20,44 @@ void CommunicationHandler::read() {
     }
 
     std::vector<unsigned char> buffer(1024);
-    std::string response;
     int bytesRead = 0;
 
     // Store any remaining part of a message from previous reads
     static std::string leftover;
 
-    // Loop to accumulate data until we reach a terminator
+    // Store expected length of next message
+    static size_t expectedMessageLength = 0;
+
+    // Loop to accumulate data until we reach a complete message
     while ((bytesRead = connection->read(buffer)) > 0) {
-        response.append(buffer.begin(), buffer.begin() + bytesRead);
+        leftover.append(buffer.begin(), buffer.begin() + bytesRead);
 
-        // Look for the terminator character in the response
-        size_t pos = 0;
-        while ((pos = response.find('|')) != std::string::npos) {
-            std::string completeMessage = leftover + response.substr(0, pos);
-            leftover.clear();
-            response.erase(0, pos + 1); // Remove processed part from response
+        while (true) {
+            if (expectedMessageLength == 0) {
+                // If we haven't read the length yet, check if we have enough bytes for it
+                if (leftover.size() < sizeof(uint32_t)) {
+                    break; // wait for more data
+                }
 
-            // Process complete Message
-            Message receivedMessage = Message::fromString(completeMessage);
+                // Extract message length (first 4 bytes)
+                expectedMessageLength = *reinterpret_cast<const uint32_t *>(leftover.data());
+                leftover.erase(0, sizeof(uint32_t)); // Remove the length prefix
+            }
+
+            // Check if we have the complete message
+            if (leftover.size() < expectedMessageLength) {
+                break; // wait for more data
+            }
+
+            // Extract the complete message based on the expected length
+            std::string completeMessage = leftover.substr(0, expectedMessageLength);
+            leftover.erase(0, expectedMessageLength);
+            expectedMessageLength = 0; // Reset for next message
+
+            // Process complete message
+            Message receivedMessage = Message::fromProto(completeMessage);
             messageQueue.push(receivedMessage);
         }
-
-        // If no terminator found, add data to leftover and wait for the next chunk
-        leftover += response;
-        response.clear();
     }
 }
 
@@ -53,9 +66,12 @@ void CommunicationHandler::write(const Message& message) {
         return;
     }
     // convert the message to a string
-    auto messageString = message.toString() + "|";
+    auto messageString = message.toProto();
+    uint32_t messageLength = messageString.size();
+
     // send the message
-    connection->write(message.toString());
+    connection->write(reinterpret_cast<const unsigned char *>(&messageLength), sizeof(uint32_t));
+    connection->write(reinterpret_cast<const unsigned char *>(messageString.data()), messageString.size());
 }
 
 void CommunicationHandler::handleConnection() {
