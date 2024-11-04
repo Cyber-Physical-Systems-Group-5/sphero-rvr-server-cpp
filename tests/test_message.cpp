@@ -18,7 +18,7 @@ TEST_CASE("Message from string", "[message]") {
     std::filesystem::path imagePath = IMAGE_PATH;
     std::string image = loadImage(imagePath);
 
-    Message message = Message::fromString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
+    Message message = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
     message.setImageFromString(image);
 
     REQUIRE(message.getSpeed() == 100);
@@ -38,8 +38,28 @@ TEST_CASE("Message to string", "[message]") {
     Message message = Message(100, {Direction::FORWARD, Direction::LEFT});
     message.setImageFromString(image);
 
-    std::string str = message.toString();
-    Message newMessage = Message::fromString(str);
+    std::string str = message.toJSONString();
+    Message newMessage = Message::fromJSONString(str);
+
+    REQUIRE(newMessage.getSpeed() == 100);
+    auto directions = newMessage.getDirections();
+    REQUIRE(directions.size() == 2);
+    REQUIRE(directions[0] == Direction::FORWARD);
+    REQUIRE(directions[1] == Direction::LEFT);
+    REQUIRE(newMessage.getImage().has_value());
+    REQUIRE(newMessage.getImage().value() == image);
+}
+
+TEST_CASE("Message to proto", "[message]") {
+    // Load test image
+    std::filesystem::path imagePath = IMAGE_PATH;
+    std::string image = loadImage(imagePath);
+
+    Message message = Message(100, {Direction::FORWARD, Direction::LEFT});
+    message.setImageFromString(image);
+
+    std::string str = message.toProto();
+    Message newMessage = Message::fromProto(str);
 
     REQUIRE(newMessage.getSpeed() == 100);
     auto directions = newMessage.getDirections();
