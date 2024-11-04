@@ -123,15 +123,16 @@ public:
         }
 
         auto& directions = message.directions();
+
         std::vector<Direction> directionsVector;
         for (const auto & direction : directions) {
-            if (direction == "forward") {
+            if (direction == proto::ProtoMessage_Direction_FORWARD) {
                 directionsVector.push_back(Direction::FORWARD);
-            } else if (direction == "backward") {
+            } else if (direction == proto::ProtoMessage_Direction_BACKWARD) {
                 directionsVector.push_back(Direction::BACKWARD);
-            } else if (direction == "left") {
+            } else if (direction == proto::ProtoMessage_Direction_LEFT) {
                 directionsVector.push_back(Direction::LEFT);
-            } else if (direction == "right") {
+            } else if (direction == proto::ProtoMessage_Direction_RIGHT) {
                 directionsVector.push_back(Direction::RIGHT);
             }
         }
@@ -148,14 +149,19 @@ public:
         proto::ProtoMessage message;
         message.set_speed(speed);
         for (const auto & direction : directions) {
-            if (direction == Direction::FORWARD) {
-                message.add_directions("forward");
-            } else if (direction == Direction::BACKWARD) {
-                message.add_directions("backward");
-            } else if (direction == Direction::LEFT) {
-                message.add_directions("left");
-            } else if (direction == Direction::RIGHT) {
-                message.add_directions("right");
+            switch (direction) {
+                case Direction::FORWARD:
+                    message.add_directions(proto::ProtoMessage_Direction_FORWARD);
+                    break;
+                case Direction::BACKWARD:
+                    message.add_directions(proto::ProtoMessage_Direction_BACKWARD);
+                    break;
+                case Direction::LEFT:
+                    message.add_directions(proto::ProtoMessage_Direction_LEFT);
+                    break;
+                case Direction::RIGHT:
+                    message.add_directions(proto::ProtoMessage_Direction_RIGHT);
+                    break;
             }
         }
         if (image.has_value()) {
