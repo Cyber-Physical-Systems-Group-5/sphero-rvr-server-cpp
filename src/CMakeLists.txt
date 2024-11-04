@@ -4,7 +4,6 @@ set(utilDir "${PROJECT_SOURCE_DIR}/src/util")
 
 set(headers
         "${includeDir}/CommunicationHandler.hpp"
-        "${includeDir}/NetworkHelper.hpp"
         "${includeDir}/json.hpp"
         "${srcDir}/util/Message.hpp"
 )
@@ -22,4 +21,4 @@ target_include_directories(comm_handler
         PRIVATE ${utilDir}
 )
 
-target_link_libraries(comm_handler PRIVATE simple_socket)
+target_link_libraries(comm_handler PRIVATE simple_socket proto_msg)
