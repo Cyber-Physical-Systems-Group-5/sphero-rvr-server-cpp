@@ -100,7 +100,7 @@ TEST_CASE("CommunicationHandler message processing rate") {
     // Store message size
     const uint32_t messageSize = imageMessage.toProto().size();
 
-    const int messageCount = 100; // Define the number of messages to send for the test
+    const int messageCount = 300; // Define the number of messages to send for the test
     int receivedCount = 0;
 
     std::thread serverThread([&] {
