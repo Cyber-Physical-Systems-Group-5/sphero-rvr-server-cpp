@@ -6,6 +6,9 @@ option(BUILD_TESTS "Build tests" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
+find_package(protobuf CONFIG REQUIRED)
+add_subdirectory(protobuf)
+
 add_subdirectory(src)
 
 if (BUILD_TESTS)
@@ -32,3 +35,4 @@ FetchContent_MakeAvailable(simple_socket)
 add_executable(rvr_server main.cpp)
 target_link_libraries(rvr_server PRIVATE comm_handler)
 target_link_libraries(rvr_server PRIVATE simple_socket)
+target_link_libraries(rvr_server PRIVATE proto_msg)
