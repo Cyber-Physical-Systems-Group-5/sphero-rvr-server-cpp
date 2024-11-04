@@ -2,8 +2,10 @@
 #define RVR_SERVER_MESSAGE_HPP
 
 #include <set>
+#include <utility>
 #include "json.hpp"
 #include "base64.hpp"
+#include "Image.pb.h"
 
 enum class Direction {
     FORWARD,
@@ -48,13 +50,15 @@ public:
 
     Message(uint8_t speed, std::vector<Direction> directions) : speed(speed), directions(std::move(directions)), image(std::nullopt) {}
 
+    Message(uint8_t speed, std::vector<Direction> directions, std::optional<std::string> image) : speed(speed), directions(std::move(directions)), image(std::move(image)) {}
+
     /**
      * @brief Construct a new Message object from a JSON string
      *
      * @param str JSON string
      * @return Message
      */
-    static Message fromString(const std::string &str) {
+    static Message fromJSONString(const std::string &str) {
         nlohmann::json json = nlohmann::json::parse(str);
         Message message;
         message.speed = json["speed"];
@@ -77,7 +81,7 @@ public:
         return message;
     }
 
-    std::string toString() const {
+    std::string toJSONString() const {
         nlohmann::json json;
         json["speed"] = speed;
         for (const auto &direction : directions) {
@@ -109,6 +113,55 @@ public:
 
     bool operator!=(const Message &rhs) const {
         return !(rhs == *this);
+    }
+
+    static Message fromProto(const std::string& protoMsg) {
+        proto::ProtoMessage message;
+        bool success = message.ParseFromString(protoMsg);
+        if (!success) {
+            throw std::runtime_error("Failed to parse ProtoMessage");
+        }
+
+        auto& directions = message.directions();
+        std::vector<Direction> directionsVector;
+        for (const auto & direction : directions) {
+            if (direction == "forward") {
+                directionsVector.push_back(Direction::FORWARD);
+            } else if (direction == "backward") {
+                directionsVector.push_back(Direction::BACKWARD);
+            } else if (direction == "left") {
+                directionsVector.push_back(Direction::LEFT);
+            } else if (direction == "right") {
+                directionsVector.push_back(Direction::RIGHT);
+            }
+        }
+        uint8_t speed = message.speed();
+        std::optional<std::string> image;
+        if (!message.image().empty()) {
+            image = message.image();
+        }
+
+        return {speed, directionsVector, image};
+    }
+
+    std::string toProto() const {
+        proto::ProtoMessage message;
+        message.set_speed(speed);
+        for (const auto & direction : directions) {
+            if (direction == Direction::FORWARD) {
+                message.add_directions("forward");
+            } else if (direction == Direction::BACKWARD) {
+                message.add_directions("backward");
+            } else if (direction == Direction::LEFT) {
+                message.add_directions("left");
+            } else if (direction == Direction::RIGHT) {
+                message.add_directions("right");
+            }
+        }
+        if (image.has_value()) {
+            message.set_image(image.value());
+        }
+        return message.SerializeAsString();
     }
 
 
