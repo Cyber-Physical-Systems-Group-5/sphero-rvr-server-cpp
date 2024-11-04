@@ -10,6 +10,7 @@ target_link_libraries(commhandler_test PRIVATE
         comm_handler
         Catch2::Catch2WithMain
         simple_socket
+        proto_msg
 )
 
 # Define the second test executable for message
@@ -21,6 +22,7 @@ target_include_directories(message_test
 )
 target_link_libraries(message_test PRIVATE
         Catch2::Catch2WithMain
+        proto_msg
 )
 
 # Set environment variable for testing
