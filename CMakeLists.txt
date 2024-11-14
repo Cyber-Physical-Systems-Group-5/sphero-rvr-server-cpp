@@ -6,7 +6,10 @@ option(BUILD_TESTS "Build tests" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
+
 find_package(protobuf CONFIG REQUIRED)
+find_package(OpenCV CONFIG REQUIRED)
+
 add_subdirectory(protobuf)
 
 add_subdirectory(src)
@@ -33,6 +36,11 @@ FetchContent_MakeAvailable(simple_socket)
 
 
 add_executable(rvr_server main.cpp)
+target_include_directories(rvr_server PRIVATE
+        PRIVATE ${PROJECT_SOURCE_DIR}/include
+        PRIVATE ${PROJECT_SOURCE_DIR}/src/util
+)
 target_link_libraries(rvr_server PRIVATE comm_handler)
 target_link_libraries(rvr_server PRIVATE simple_socket)
 target_link_libraries(rvr_server PRIVATE proto_msg)
+target_link_libraries(rvr_server PRIVATE ${OpenCV_LIBRARIES})
