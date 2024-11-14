@@ -40,7 +40,10 @@ void CommunicationHandler::read() {
                 }
 
                 // Extract message length (first 4 bytes)
-                expectedMessageLength = *reinterpret_cast<const uint32_t *>(leftover.data());
+                uint32_t lengthNetworkOrder;
+                std::memcpy(&lengthNetworkOrder, leftover.data(), sizeof(uint32_t));
+                expectedMessageLength = ntohl(lengthNetworkOrder);
+
                 leftover.erase(0, sizeof(uint32_t)); // Remove the length prefix
             }
 
@@ -83,6 +86,11 @@ void CommunicationHandler::handleConnection() {
 
     while (isRunning) {
         read();
+        // check if host is still connected
+        if (!connection) {
+            connectionCount--;
+            handleConnection();
+        }
     }
 }
 
@@ -94,6 +102,17 @@ Message CommunicationHandler::getLatestMessage() {
     Message message = messageQueue.front();
     messageQueue.pop();
     return message;
+}
+
+bool CommunicationHandler::hasMessages() const {
+    return !messageQueue.empty();
+}
+
+uint32_t CommunicationHandler::ntohl(uint32_t net) {
+    return ((net & 0xFF000000) >> 24) |
+           ((net & 0x00FF0000) >> 8) |
+           ((net & 0x0000FF00) << 8) |
+           ((net & 0x000000FF) << 24);
 }
 
 CommunicationHandler::~CommunicationHandler() {
