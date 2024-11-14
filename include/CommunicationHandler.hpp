@@ -66,6 +66,14 @@ private:
      */
     void close();
 
+    /**
+     * @brief Converts a 32-bit integer from network byte order to host byte order.
+     *
+     * @param net The 32-bit integer in network byte order.
+     * @return The 32-bit integer in host byte order.
+     */
+    uint32_t ntohl(uint32_t net);
+
 
 
 public:
@@ -93,6 +101,14 @@ public:
      * @param message The message to send over the active connection.
      */
     void write(const Message& message);
+
+    /**
+     * @brief Checks if there are any messages in the queue.
+     *
+     * @return True if there are messages in the queue, false otherwise.
+     */
+    bool hasMessages() const;
+
     ~CommunicationHandler();
 };
 
