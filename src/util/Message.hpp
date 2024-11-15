@@ -38,6 +38,10 @@ public:
         Message::directions = directions;
     }
 
+    void addDirection(Direction direction) {
+        directions.push_back(direction);
+    }
+
     const std::optional<std::string> &getImage() const {
         return image;
     }
