@@ -24,7 +24,7 @@ int main() {
 
                 cv::Mat image = cv::imdecode(imageBytes, cv::IMREAD_COLOR);
                 cv::imshow("Received Image", image);
-                cv::waitKey(0);
+                cv::waitKey(1);
             }
         }
     }
