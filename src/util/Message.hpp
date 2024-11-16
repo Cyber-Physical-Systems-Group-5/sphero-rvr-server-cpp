@@ -7,6 +7,10 @@
 #include "base64.hpp"
 #include "Image.pb.h"
 
+enum class Type {
+    COMMAND,
+    IMAGE
+};
 enum class Direction {
     FORWARD,
     BACKWARD,
@@ -16,11 +20,19 @@ enum class Direction {
 
 class Message {
 private:
+    Type type;
     uint8_t speed;
     std::vector<Direction> directions;
     std::optional<std::string> image;
 public:
 
+    Type getType() const {
+        return type;
+    }
+
+    void setType(Type type) {
+        Message::type = type;
+    }
 
     uint8_t getSpeed() const {
         return speed;
@@ -48,9 +60,17 @@ public:
 
     Message() = default;
 
-    Message(uint8_t speed, std::vector<Direction> directions) : speed(speed), directions(std::move(directions)), image(std::nullopt) {}
+    Message(uint8_t speed, std::vector<Direction> directions, Type type) :
+    speed(speed),
+    directions(std::move(directions)),
+    image(std::nullopt),
+    type(type) {}
 
-    Message(uint8_t speed, std::vector<Direction> directions, std::optional<std::string> image) : speed(speed), directions(std::move(directions)), image(std::move(image)) {}
+    Message(uint8_t speed, std::vector<Direction> directions, std::optional<std::string> image, Type type) :
+    speed(speed),
+    directions(std::move(directions)),
+    image(std::move(image)),
+    type(type) {}
 
     /**
      * @brief Construct a new Message object from a JSON string
@@ -78,12 +98,29 @@ public:
         } else {
             message.image = std::nullopt;
         }
+
+        switch (json["MessageType"].get<int>()) {
+            case 0:
+                message.type = Type::IMAGE;
+                break;
+            case 1:
+                message.type = Type::COMMAND;
+                break;
+        }
         return message;
     }
 
     std::string toJSONString() const {
         nlohmann::json json;
         json["speed"] = speed;
+        switch(type) {
+            case Type::COMMAND:
+                json["MessageType"] = 1;
+                break;
+            case Type::IMAGE:
+                json["MessageType"] = 0;
+                break;
+        }
         for (const auto &direction : directions) {
             if (direction == Direction::FORWARD) {
                 json["directions"].push_back("forward");
@@ -142,12 +179,32 @@ public:
             image = message.image();
         }
 
-        return {speed, directionsVector, image};
+        int type = message.type();
+        Type messageType;
+        switch (type) {
+            case 0:
+                messageType = Type::IMAGE;
+                break;
+            case 1:
+                messageType = Type::COMMAND;
+                break;
+        }
+        return {speed, directionsVector, image, messageType};
     }
 
     std::string toProto() const {
         proto::ProtoMessage message;
         message.set_speed(speed);
+
+        switch (type) {
+            case Type::COMMAND:
+                message.set_type(proto::ProtoMessage_MessageType_COMMAND);
+                break;
+            case Type::IMAGE:
+                message.set_type(proto::ProtoMessage_MessageType_IMAGE);
+                break;
+        }
+
         for (const auto & direction : directions) {
             switch (direction) {
                 case Direction::FORWARD:

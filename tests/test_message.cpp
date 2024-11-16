@@ -18,7 +18,7 @@ TEST_CASE("Message from string", "[message]") {
     std::filesystem::path imagePath = IMAGE_PATH;
     std::string image = loadImage(imagePath);
 
-    Message message = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
+    Message message = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"], \"MessageType\": 0}");
     message.setImageFromString(image);
 
     REQUIRE(message.getSpeed() == 100);
@@ -28,6 +28,7 @@ TEST_CASE("Message from string", "[message]") {
     REQUIRE(directions[1] == Direction::LEFT);
     REQUIRE(message.getImage().has_value());
     REQUIRE(message.getImage().value() == image);
+    REQUIRE(message.getType() == Type::IMAGE);
 }
 
 TEST_CASE("Message to string", "[message]") {
@@ -35,19 +36,20 @@ TEST_CASE("Message to string", "[message]") {
     std::filesystem::path imagePath = IMAGE_PATH;
     std::string image = loadImage(imagePath);
 
-    Message message = Message(100, {Direction::FORWARD, Direction::LEFT});
+    Message message = Message(100, {Direction::FORWARD, Direction::LEFT}, Type::IMAGE);
     message.setImageFromString(image);
 
     std::string str = message.toJSONString();
-    Message newMessage = Message::fromJSONString(str);
+    Message parsedMessage = Message::fromJSONString(str);
 
-    REQUIRE(newMessage.getSpeed() == 100);
-    auto directions = newMessage.getDirections();
+    REQUIRE(parsedMessage.getSpeed() == 100);
+    auto directions = parsedMessage.getDirections();
     REQUIRE(directions.size() == 2);
     REQUIRE(directions[0] == Direction::FORWARD);
     REQUIRE(directions[1] == Direction::LEFT);
-    REQUIRE(newMessage.getImage().has_value());
-    REQUIRE(newMessage.getImage().value() == image);
+    REQUIRE(parsedMessage.getImage().has_value());
+    REQUIRE(parsedMessage.getImage().value() == image);
+    REQUIRE(parsedMessage.getType() == Type::IMAGE);
 }
 
 TEST_CASE("Message to proto", "[message]") {
@@ -55,7 +57,7 @@ TEST_CASE("Message to proto", "[message]") {
     std::filesystem::path imagePath = IMAGE_PATH;
     std::string image = loadImage(imagePath);
 
-    Message message = Message(100, {Direction::FORWARD, Direction::LEFT});
+    Message message = Message(100, {Direction::FORWARD, Direction::LEFT}, Type::IMAGE);
     message.setImageFromString(image);
 
     std::string str = message.toProto();
@@ -68,4 +70,5 @@ TEST_CASE("Message to proto", "[message]") {
     REQUIRE(directions[1] == Direction::LEFT);
     REQUIRE(newMessage.getImage().has_value());
     REQUIRE(newMessage.getImage().value() == image);
+    REQUIRE(newMessage.getType() == Type::IMAGE);
 }
