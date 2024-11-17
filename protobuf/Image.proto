@@ -20,6 +20,8 @@ message ProtoMessage {
   MessageType type = 1;
   bytes image = 2;
   uint32 speed = 3;
-  repeated Direction directions = 4;
+  uint32 distance = 4;
+  repeated Direction directions = 5;
+  repeated Direction camera_directions = 6;
 
 }
