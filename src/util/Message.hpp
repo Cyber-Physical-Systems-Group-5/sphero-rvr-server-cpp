@@ -9,7 +9,8 @@
 
 enum class Type {
     COMMAND,
-    IMAGE
+    IMAGE,
+    EMPTY
 };
 enum class Direction {
     FORWARD,
