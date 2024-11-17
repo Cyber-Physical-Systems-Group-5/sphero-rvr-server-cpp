@@ -8,6 +8,8 @@
 #include <chrono>
 #include <iostream>
 
+#define HEADER_SIZE sizeof(uint32_t)
+
 std::string loadImage(std::filesystem::path path) {
 
     std::ifstream fileStream(path);
@@ -19,27 +21,72 @@ std::string loadImage(std::filesystem::path path) {
     return fileContent;
 }
 
-TEST_CASE("CommunicationHandler read/write") {
-    uint16_t port = 8000;
+std::vector<std::vector<unsigned char>> prepareUDPPackets(const Message& message) {
+    std::vector<std::vector<unsigned char>> packets;
+
+    // Serialize the message to a string
+    std::string protoString = message.toProto();
+    const uint32_t messageSize = protoString.size();
+
+    // Calculate the payload size for the first packet
+    const uint32_t payloadSize = MAX_UDP_PACKET_SIZE - HEADER_SIZE;
+
+    // Calculate the total number of packets needed
+    uint32_t totalPackets = (messageSize + payloadSize - 1) / payloadSize; // Ceiling of messageSize / payloadSize
+
+    // The first packet will contain the total bytes of the message as header
+    {
+        uint32_t chunkSize = std::min(payloadSize, messageSize);
+
+        // Create the first packet
+        std::vector<unsigned char> firstPacket(HEADER_SIZE + chunkSize);
+
+        // Add the header (message size as 4 bytes)
+        std::memcpy(firstPacket.data(), &messageSize, HEADER_SIZE);
+
+        // Add the payload
+        std::memcpy(firstPacket.data() + HEADER_SIZE, protoString.data(), chunkSize);
+
+        packets.push_back(std::move(firstPacket));
+    }
+
+    // Split the message into multiple packets
+    for (uint32_t i = 1; i < totalPackets; ++i) {
+        uint32_t startIdx = i * payloadSize;
+        uint32_t endIdx = std::min(startIdx + payloadSize, messageSize);
+        uint32_t chunkSize = endIdx - startIdx;
+
+        // Create the packet
+        std::vector<unsigned char> packet(chunkSize);
+
+        // Add the payload
+        std::memcpy(packet.data(), protoString.data() + startIdx, chunkSize);
+
+        packets.push_back(std::move(packet));
+    }
+
+    return packets;
+}
+
+
+TEST_CASE("CommunicationHandler read/write TCP") {
+    uint16_t TCPPort = 8000;
+    uint16_t UDPPort = 8340;
+    std::string remoteAddress = "127.0.0.1";
     std::condition_variable cv;
     std::mutex cvMutex;
     bool serverReady = false;
 
-    std::string image = loadImage(IMAGE_PATH);
 
-    Message message1 = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
-    Message message2 = Message::fromJSONString("{\"speed\": 50, \"directions\": [\"backward\", \"right\"]}");
-    message2.setImageFromString(image);
-
+    Message message = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"], \"MessageType\": 1}"); // COMMAND type
     // Store message sizes
-    const uint32_t message1Size = message1.toProto().size();
-    const uint32_t message2Size = message2.toProto().size();
+    const uint32_t messageSize = message.toProto().size();
 
 
 
 
     std::thread serverThread([&] {
-        CommunicationHandler server(port);
+        CommunicationHandler server(TCPPort, UDPPort, remoteAddress, UDPPort);
         // Signal that the server is ready
         {
             std::lock_guard<std::mutex> lock(cvMutex);
@@ -51,10 +98,8 @@ TEST_CASE("CommunicationHandler read/write") {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         // Wait for and read client message1
-        auto response = server.getLatestMessage();
-        CHECK(response == message1);
-        response = server.getLatestMessage();
-        CHECK(response == message2);
+        auto response = server.getLatestCommandMessage();
+        CHECK(response == message);
 
         // test write
         //server.write(message1);
@@ -69,14 +114,11 @@ TEST_CASE("CommunicationHandler read/write") {
     // Start client thread only after server is ready
     std::thread clientThread([&] {
         TCPClientContext client;
-        const auto conn = client.connect("127.0.0.1", port);
+        const auto conn = client.connect("127.0.0.1", TCPPort);
         REQUIRE(conn);
         // send first message
-        conn->write(reinterpret_cast<const unsigned char *>(&message1Size), sizeof(uint32_t));
-        conn->write(message1.toProto());
-        // send second message
-        conn->write(reinterpret_cast<const unsigned char *>(&message2Size), sizeof(uint32_t));
-        conn->write(message2.toProto());
+        conn->write(reinterpret_cast<const unsigned char *>(&messageSize), sizeof(uint32_t));
+        conn->write(message.toProto());
 
     });
 
@@ -84,8 +126,43 @@ TEST_CASE("CommunicationHandler read/write") {
     serverThread.join();
 }
 
+TEST_CASE("CommunicationHandler read/write UDP") {
+    uint16_t TCPPort = 8000;
+    uint16_t UDPServerPort = 8001;
+    uint16_t UDPClientPort = 8002;
+    std::string remoteAddress = "127.0.0.1";
+
+    CommunicationHandler server(TCPPort, UDPServerPort, remoteAddress, UDPClientPort);
+
+    auto image = loadImage(IMAGE_PATH);
+    Message message = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"], \"MessageType\": 0}"); // IMAGE type
+    message.setImageFromString(image);
+
+    // Store message sizes
+    auto packets = prepareUDPPackets(message);
+
+    // send udp packets
+    UDPSocket client(UDPClientPort);
+    for (const auto &packet : packets) {
+        REQUIRE(client.sendTo(remoteAddress, UDPServerPort, packet));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    Message response;
+
+    while ((response = server.getLatestImageMessage()).getType() == Type::EMPTY) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    CHECK(response == message);
+
+
+}
+
 TEST_CASE("CommunicationHandler message processing rate") {
-    uint16_t port = 8000;
+    uint16_t TCPPort = 8000;
+    uint16_t UDPPort = 8001;
+    std::string remoteAddress = "127.0.0.1";
     std::condition_variable cv;
     std::mutex cvMutex;
     bool serverReady = false;
@@ -94,7 +171,7 @@ TEST_CASE("CommunicationHandler message processing rate") {
     std::string image = loadImage(IMAGE_PATH);
 
     // Prepare a message with an image
-    Message imageMessage = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"]}");
+    Message imageMessage = Message::fromJSONString("{\"speed\": 100, \"directions\": [\"forward\", \"left\"], \"MessageType\": 0}"); // IMAGE type
     imageMessage.setImageFromString(image);
 
     // Store message size
@@ -104,7 +181,7 @@ TEST_CASE("CommunicationHandler message processing rate") {
     int receivedCount = 0;
 
     std::thread serverThread([&] {
-        CommunicationHandler server(port);
+        CommunicationHandler server(TCPPort, UDPPort, remoteAddress, UDPPort);;
 
         // Signal that the server is ready
         {
@@ -116,7 +193,7 @@ TEST_CASE("CommunicationHandler message processing rate") {
         // Start receiving and counting messages
         auto startTime = std::chrono::steady_clock::now();
         while (receivedCount < messageCount) {
-            if (server.getLatestMessage() != Message()) {
+            if (server.getLatestImageMessage() != Message()) {
                 receivedCount++;
             }
         }
@@ -140,7 +217,7 @@ TEST_CASE("CommunicationHandler message processing rate") {
     // Start client thread after server is ready
     std::thread clientThread([&] {
         TCPClientContext client;
-        const auto conn = client.connect("127.0.0.1", port);
+        const auto conn = client.connect("127.0.0.1", TCPPort);
         REQUIRE(conn);
 
         for (int i = 0; i < messageCount; ++i) {

@@ -6,6 +6,7 @@
 #define SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 
 #include "simple_socket/TCPSocket.hpp"
+#include "simple_socket/UDPSocket.hpp"
 #include "Message.hpp"
 #include <vector>
 #include <thread>
@@ -45,24 +46,41 @@ using namespace simple_socket;
  */
 class CommunicationHandler {
 private:
-    TCPServer server;                               ///< The TCP server instance used for accepting connections.
-    std::unique_ptr<SimpleConnection> connection;   ///< The active connection with the client.
-    std::jthread connectionThread;                  ///< Thread for handling incoming connections.
-    std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
-    std::queue<Message> messageQueue;           ///< Queue for storing received messages.
+    std::string remoteAddress;
+    uint16_t remotePort;
+    TCPServer server;                                  ///< The TCP server instance used for accepting connections.
+    std::unique_ptr<SimpleConnection> TCPconnection;   ///< The active TCP connection with the client.
+    UDPSocket udpSocket;                               ///< The UDP socket instance used for accepting connections.
+
+    std::jthread TCPconnectionThread;                  ///< Thread for handling incoming connections.
+    std::jthread UDPconnectionThread;                  ///< Thread for handling incoming connections.
+    std::atomic<bool> isRunning{true};                 ///< Flag to indicate whether the thread is active.
+
+    std::queue<Message> commandQueue;                  ///< Queue for storing received command messages.
+    std::queue<Message> imageQueue;                    ///< Queue for storing received image messages.
 
     /**
-     * @brief Handles incoming client connections and assigns them to the connection thread.
+     * @brief Handles incoming TCP connections. This method is executed within the TCPconnection thread.
      */
-    void handleConnection();
+    void handleTCPConnection();
+    /**
+     * @brief Handles incoming UDP connections. This method is executed within the UDPconnection thread.
+     */
+    void handleUDPConnection();
     /**
      * @brief Reads data from the connected client, processes it, and enqueues parsed messages.
-     *        This method is executed within the connection thread.
+     *        This method is executed within the TCPconnection thread.
      */
-    void read();
+    void readTCP();
 
     /**
-     * @brief Closes the connection and stops the thread.
+     * @brief Reads data from the connected client, processes it, and enqueues parsed messages.
+     *        This method is executed within the TCPconnection thread.
+     */
+    void readUDP();
+
+    /**
+     * @brief Closes the TCPconnection and stops the thread.
      */
     void close();
 
@@ -85,7 +103,7 @@ public:
      *
      * @param port The TCP port to bind the server for incoming connections.
      */
-    explicit CommunicationHandler(uint16_t port);
+    explicit CommunicationHandler(uint16_t TCPPort, uint16_t UDPPort, std::string remoteAddress, uint16_t remotePort);
 
     /**
      * @brief Retrieves the latest processed message from the internal message queue.
@@ -93,12 +111,20 @@ public:
      *
      * @return The latest available message in the queue.
      */
-    Message getLatestMessage();
+    Message getLatestCommandMessage();
+
+    /**
+     * @brief Retrieves the latest processed message from the internal message queue.
+     *        If the queue is empty, returns an empty Message object.
+     *
+     * @return The latest available message in the queue.
+     */
+    Message getLatestImageMessage();
 
     /**
      * @brief Sends a message to the connected client. If no client is connected, the message is ignored.
      *
-     * @param message The message to send over the active connection.
+     * @param message The message to send over the active TCPconnection.
      */
     void write(const Message& message);
 

@@ -5,12 +5,15 @@
 #include "src/util/Message.hpp"
 
 int main() {
-    CommunicationHandler server(8000);
+    uint16_t TCPPort = 8000;
+    uint16_t UDPPort = 8001;
+    std::string remoteAddress = "10.22.88.158";
+    CommunicationHandler server(TCPPort, UDPPort, remoteAddress, UDPPort);
     std::cout << "Server started on port 8000" << std::endl;
     std::cout << "Press 'q' to quit" << std::endl;
     while (true) {
         if (server.hasMessages()) {
-            Message message = server.getLatestMessage();
+            Message message = server.getLatestImageMessage();
             std::cout << "Speed: " << static_cast<int>(message.getSpeed()) << std::endl;
             std::cout << "Directions: ";
             for (const auto &direction : message.getDirections()) {
