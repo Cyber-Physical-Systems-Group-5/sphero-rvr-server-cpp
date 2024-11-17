@@ -7,6 +7,11 @@
 #include "base64.hpp"
 #include "Image.pb.h"
 
+enum class Type {
+    COMMAND,
+    IMAGE,
+    EMPTY
+};
 enum class Direction {
     FORWARD,
     BACKWARD,
@@ -16,11 +21,29 @@ enum class Direction {
 
 class Message {
 private:
+    Type type;
+    uint16_t distance;
     uint8_t speed;
     std::vector<Direction> directions;
+    std::vector<Direction> cameraDirections;
     std::optional<std::string> image;
 public:
 
+    uint16_t getDistance() const {
+        return distance;
+    }
+
+    void setDistance(uint16_t distance) {
+        Message::distance = distance;
+    }
+
+    Type getType() const {
+        return type;
+    }
+
+    void setType(Type type) {
+        Message::type = type;
+    }
 
     uint8_t getSpeed() const {
         return speed;
@@ -38,8 +61,20 @@ public:
         Message::directions = directions;
     }
 
+    const std::vector<Direction> &getCameraDirections() const {
+        return cameraDirections;
+    }
+
+    void setCameraDirections(const std::vector<Direction> &directions) {
+        Message::cameraDirections = directions;
+    }
+
     void addDirection(Direction direction) {
         directions.push_back(direction);
+    }
+
+    void addCameraDirection(Direction direction) {
+        cameraDirections.push_back(direction);
     }
 
     const std::optional<std::string> &getImage() const {
@@ -56,6 +91,14 @@ public:
 
     Message(uint8_t speed, std::vector<Direction> directions, std::optional<std::string> image) : speed(speed), directions(std::move(directions)), image(std::move(image)) {}
 
+    Message(Type type, uint16_t distance, uint8_t speed, std::vector<Direction> directions, std::vector<Direction> cameraDirections, std::optional<std::string> image) :
+            type(type),
+            distance(distance),
+            speed(speed),
+            directions(std::move(directions)),
+            cameraDirections(std::move(cameraDirections)),
+            image(std::move(image)) {}
+
     /**
      * @brief Construct a new Message object from a JSON string
      *
@@ -66,6 +109,15 @@ public:
         nlohmann::json json = nlohmann::json::parse(str);
         Message message;
         message.speed = json["speed"];
+        message.distance = json["distance"];
+        switch (json["type"].get<int>()) {
+            case 0:
+                message.type = Type::IMAGE;
+                break;
+            case 1:
+                message.type = Type::COMMAND;
+                break;
+        }
         for (const auto &direction : json["directions"]) {
             if (direction == "forward") {
                 message.directions.push_back(Direction::FORWARD);
@@ -88,6 +140,15 @@ public:
     std::string toJSONString() const {
         nlohmann::json json;
         json["speed"] = speed;
+        json["distance"] = distance;
+        switch(type) {
+            case Type::COMMAND:
+                json["type"] = 1;
+                break;
+            case Type::IMAGE:
+                json["type"] = 0;
+                break;
+        }
         for (const auto &direction : directions) {
             if (direction == Direction::FORWARD) {
                 json["directions"].push_back("forward");
@@ -110,9 +171,14 @@ public:
         // compare directions as a set
         std::set<Direction> lhsSet(directions.begin(), directions.end());
         std::set<Direction> rhsSet(rhs.directions.begin(), rhs.directions.end());
+        std::set<Direction> lhsCameraSet(cameraDirections.begin(), cameraDirections.end());
+        std::set<Direction> rhsCameraSet(rhs.cameraDirections.begin(), rhs.cameraDirections.end());
         return speed == rhs.speed &&
                lhsSet == rhsSet &&
-               image == rhs.image;
+               image == rhs.image &&
+               type == rhs.type &&
+               distance == rhs.distance &&
+               lhsCameraSet == rhsCameraSet;
     }
 
     bool operator!=(const Message &rhs) const {
@@ -127,6 +193,7 @@ public:
         }
 
         auto& directions = message.directions();
+        auto& cameraDirections = message.camera_directions();
 
         std::vector<Direction> directionsVector;
         for (const auto & direction : directions) {
@@ -140,18 +207,54 @@ public:
                 directionsVector.push_back(Direction::RIGHT);
             }
         }
+
+        std::vector<Direction> cameraDirectionsVector;
+        for (const auto & direction : cameraDirections) {
+            if (direction == proto::ProtoMessage_Direction_FORWARD) {
+                cameraDirectionsVector.push_back(Direction::FORWARD);
+            } else if (direction == proto::ProtoMessage_Direction_BACKWARD) {
+                cameraDirectionsVector.push_back(Direction::BACKWARD);
+            } else if (direction == proto::ProtoMessage_Direction_LEFT) {
+                cameraDirectionsVector.push_back(Direction::LEFT);
+            } else if (direction == proto::ProtoMessage_Direction_RIGHT) {
+                cameraDirectionsVector.push_back(Direction::RIGHT);
+            }
+        }
+
+        int type = message.type();
+        Type messageType;
+        switch (type) {
+            case 0:
+                messageType = Type::IMAGE;
+                break;
+            case 1:
+                messageType = Type::COMMAND;
+                break;
+        }
+
         uint8_t speed = message.speed();
+        uint16_t distance = message.distance();
         std::optional<std::string> image;
         if (!message.image().empty()) {
             image = message.image();
         }
 
-        return {speed, directionsVector, image};
+        return {messageType, distance, speed, directionsVector, cameraDirectionsVector, image};
     }
 
     std::string toProto() const {
         proto::ProtoMessage message;
         message.set_speed(speed);
+        message.set_distance(distance);
+        switch (type) {
+            case Type::COMMAND:
+                message.set_type(proto::ProtoMessage_MessageType_COMMAND);
+                break;
+            case Type::IMAGE:
+                message.set_type(proto::ProtoMessage_MessageType_IMAGE);
+                break;
+        }
+
         for (const auto & direction : directions) {
             switch (direction) {
                 case Direction::FORWARD:
@@ -165,6 +268,23 @@ public:
                     break;
                 case Direction::RIGHT:
                     message.add_directions(proto::ProtoMessage_Direction_RIGHT);
+                    break;
+            }
+        }
+
+        for (const auto & direction : cameraDirections) {
+            switch (direction) {
+                case Direction::FORWARD:
+                    message.add_camera_directions(proto::ProtoMessage_Direction_FORWARD);
+                    break;
+                case Direction::BACKWARD:
+                    message.add_camera_directions(proto::ProtoMessage_Direction_BACKWARD);
+                    break;
+                case Direction::LEFT:
+                    message.add_camera_directions(proto::ProtoMessage_Direction_LEFT);
+                    break;
+                case Direction::RIGHT:
+                    message.add_camera_directions(proto::ProtoMessage_Direction_RIGHT);
                     break;
             }
         }

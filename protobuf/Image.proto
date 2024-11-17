@@ -12,8 +12,16 @@ message ProtoMessage {
     LEFT = 3;
   }
 
-  bytes image = 1;
-  uint32 speed = 2;
-  repeated Direction directions = 3;
+  enum MessageType {
+    IMAGE = 0;
+    COMMAND = 1;
+  }
+
+  MessageType type = 1;
+  bytes image = 2;
+  uint32 speed = 3;
+  uint32 distance = 4;
+  repeated Direction directions = 5;
+  repeated Direction camera_directions = 6;
 
 }
