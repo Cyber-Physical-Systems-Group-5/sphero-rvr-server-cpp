@@ -6,20 +6,21 @@
 #include <ncurses.h>
 #include "../src/util/Message.hpp"
 
-class KeyHandler {
+class KeyListener {
 private:
     int previousKey = ERR;
+    uint8_t speed = 100;
     std::jthread keyDetectionThread;
     std::atomic<bool> isRunning{true};
     std::unique_ptr<std::queue<Message>> messageQueue;
 
     void detectKeys();
 public:
-    KeyHandler();
+    KeyListener();
 
     Message getMessage();
 
-    ~KeyHandler();
+    ~KeyListener();
 };
 
 

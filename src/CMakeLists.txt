@@ -5,13 +5,13 @@ set(utilDir "${PROJECT_SOURCE_DIR}/src/util")
 set(headers
         "${includeDir}/CommunicationHandler.hpp"
         "${includeDir}/json.hpp"
-        "${includeDir}/KeyHandler.hpp"
+        "${includeDir}/KeyListener.hpp"
         "${srcDir}/util/Message.hpp"
 )
 
 set(sources
         "${srcDir}/CommunicationHandler.cpp"
-        "${srcDir}/KeyHandler.cpp"
+        "${srcDir}/KeyListener.cpp"
 )
 
 add_library(comm_handler "${headers}" "${sources}")
@@ -26,5 +26,5 @@ target_include_directories(comm_handler
 target_link_libraries(comm_handler PRIVATE simple_socket proto_msg)
 
 
-add_executable(key_handler KeyHandler.cpp)
+add_executable(key_handler KeyListener.cpp)
 target_link_libraries(key_handler PRIVATE curses)

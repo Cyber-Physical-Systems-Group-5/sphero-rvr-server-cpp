@@ -3,23 +3,25 @@
 #include <fstream>
 #include "include/CommunicationHandler.hpp"
 #include "src/util/Message.hpp"
+#include "include/KeyListener.hpp"
 
 int main() {
     CommunicationHandler server(8000);
+    //KeyListener keyListener;
     std::cout << "Server started on port 8000" << std::endl;
-    std::cout << "Press 'q' to quit" << std::endl;
     while (true) {
+        // receive messages
         if (server.hasMessages()) {
             Message message = server.getLatestMessage();
-            std::cout << "Speed: " << static_cast<int>(message.getSpeed()) << std::endl;
-            std::cout << "Directions: ";
+            //std::cout << "Speed: " << static_cast<int>(message.getSpeed()) << std::endl;
+            //std::cout << "Directions: ";
             for (const auto &direction : message.getDirections()) {
                 std::cout << static_cast<int>(direction) << " ";
             }
             std::cout << std::endl;
             if (message.getImage().has_value()) {
                 auto receivedImage = message.getImage().value();
-                std::cout << "Image size: " << receivedImage.size() << std::endl;
+                //std::cout << "Image size: " << receivedImage.size() << std::endl;
                 std::vector<unsigned char> imageBytes(receivedImage.begin(), receivedImage.end());
 
                 cv::Mat image = cv::imdecode(imageBytes, cv::IMREAD_COLOR);
@@ -27,5 +29,13 @@ int main() {
                 cv::waitKey(1);
             }
         }
+
+        // send key presses
+//        try {
+//            Message keyMessage = keyListener.getMessage();
+//            server.write(keyMessage);
+//        } catch (const std::exception &e) {
+//            continue;
+//        }
     }
 }
