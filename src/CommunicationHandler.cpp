@@ -59,7 +59,11 @@ void CommunicationHandler::read() {
 
             // Process complete message
             Message receivedMessage = Message::fromProto(completeMessage);
+
+            // Enqueue the message
+            std::lock_guard<std::mutex> lock(mtx);
             messageQueue.push(receivedMessage);
+            cv.notify_one();
         }
     }
 }
@@ -95,6 +99,7 @@ void CommunicationHandler::handleConnection() {
 }
 
 Message CommunicationHandler::getLatestMessage() {
+    std::lock_guard<std::mutex> lock(mtx);
     if (messageQueue.empty()) {
         return {};
     }
@@ -117,4 +122,8 @@ uint32_t CommunicationHandler::ntohl(uint32_t net) {
 
 CommunicationHandler::~CommunicationHandler() {
     close();
+}
+
+std::mutex &CommunicationHandler::getMtx() {
+    return mtx;
 }

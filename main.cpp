@@ -7,21 +7,43 @@
 
 int main() {
     CommunicationHandler server(8000);
-    //KeyListener keyListener;
+    KeyListener keyListener;
+    std::atomic<bool> isRunning{true};
     std::cout << "Server started on port 8000" << std::endl;
-    while (true) {
-        // receive messages
-        if (server.hasMessages()) {
+    // start thread to listen for key presses and send commands
+    std::jthread keyListenerThread([&keyListener, &server, &isRunning] {
+        while (isRunning) {
+            {
+                std::unique_lock<std::mutex> lock(keyListener.getMtx());
+                keyListener.cv.wait(lock, [&] { return keyListener.hasMessages(); });
+            }
+            while (keyListener.hasMessages()) {
+                auto keyMessage = keyListener.getMessage();
+                server.write(keyMessage);
+            }
+        }
+    });
+
+    while (isRunning) {
+
+        {
+            std::unique_lock<std::mutex> lock(server.getMtx());
+            server.cv.wait(lock, [&] { return server.hasMessages(); });
+        }
+
+        // Retrieve and process messages
+        while (server.hasMessages()) {
             Message message = server.getLatestMessage();
-            //std::cout << "Speed: " << static_cast<int>(message.getSpeed()) << std::endl;
-            //std::cout << "Directions: ";
-            for (const auto &direction : message.getDirections()) {
+
+            // Process directions
+            for (const auto& direction : message.getDirections()) {
                 std::cout << static_cast<int>(direction) << " ";
             }
             std::cout << std::endl;
+
+            // Process image if available
             if (message.getImage().has_value()) {
                 auto receivedImage = message.getImage().value();
-                //std::cout << "Image size: " << receivedImage.size() << std::endl;
                 std::vector<unsigned char> imageBytes(receivedImage.begin(), receivedImage.end());
 
                 cv::Mat image = cv::imdecode(imageBytes, cv::IMREAD_COLOR);
@@ -29,13 +51,5 @@ int main() {
                 cv::waitKey(1);
             }
         }
-
-        // send key presses
-//        try {
-//            Message keyMessage = keyListener.getMessage();
-//            server.write(keyMessage);
-//        } catch (const std::exception &e) {
-//            continue;
-//        }
     }
 }

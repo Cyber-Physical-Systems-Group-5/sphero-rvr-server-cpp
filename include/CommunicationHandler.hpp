@@ -10,6 +10,7 @@
 #include <vector>
 #include <thread>
 #include <queue>
+#include <condition_variable>
 
 using namespace simple_socket;
 
@@ -49,7 +50,8 @@ private:
     std::unique_ptr<SimpleConnection> connection;   ///< The active connection with the client.
     std::jthread connectionThread;                  ///< Thread for handling incoming connections.
     std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
-    std::queue<Message> messageQueue;           ///< Queue for storing received messages.
+    std::queue<Message> messageQueue;               ///< Queue for storing received messages.
+    std::mutex mtx;
 
     /**
      * @brief Handles incoming client connections and assigns them to the connection thread.
@@ -78,6 +80,7 @@ private:
 
 public:
     unsigned int connectionCount = 0;
+    std::condition_variable cv;
 
     /**
      * @brief Initializes a CommunicationHandler instance on a specified TCP port, setting up
@@ -108,6 +111,8 @@ public:
      * @return True if there are messages in the queue, false otherwise.
      */
     bool hasMessages() const;
+
+    std::mutex &getMtx();
 
     ~CommunicationHandler();
 };

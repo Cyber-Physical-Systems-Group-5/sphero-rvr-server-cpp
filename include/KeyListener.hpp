@@ -4,6 +4,7 @@
 #include <thread>
 #include <queue>
 #include <ncurses.h>
+#include <condition_variable>
 #include "../src/util/Message.hpp"
 
 class KeyListener {
@@ -15,14 +16,23 @@ private:
     std::jthread keyDetectionThread;
     std::atomic<bool> isRunning{true};
     std::queue<Message> messageQueue;
+    std::mutex mtx;
 
     void detectKeys();
 
     void updateSpeed(int ch);
 public:
+    std::condition_variable cv;
+
+    std::mutex &getMtx();
+
     KeyListener();
 
     Message getMessage();
+
+    bool hasMessages() const;
+
+    bool running() const;
 
     ~KeyListener();
 };
