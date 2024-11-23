@@ -294,6 +294,61 @@ public:
         return message.SerializeAsString();
     }
 
+    std::string toString() const {
+        std::string str;
+        str += "Type: ";
+        switch (type) {
+            case Type::COMMAND:
+                str += "COMMAND\n";
+                break;
+            case Type::IMAGE:
+                str += "IMAGE\n";
+                break;
+            case Type::EMPTY:
+                str += "EMPTY\n";
+                break;
+        }
+        str += "Speed: " + std::to_string(speed) + "\n";
+        str += "Distance: " + std::to_string(distance) + "\n";
+        str += "Directions: ";
+        for (const auto &direction : directions) {
+            switch (direction) {
+                case Direction::FORWARD:
+                    str += "FORWARD ";
+                    break;
+                case Direction::BACKWARD:
+                    str += "BACKWARD ";
+                    break;
+                case Direction::LEFT:
+                    str += "LEFT ";
+                    break;
+                case Direction::RIGHT:
+                    str += "RIGHT ";
+                    break;
+            }
+        }
+        str += "\n";
+        str += "Camera Directions: ";
+        for (const auto &direction : cameraDirections) {
+            switch (direction) {
+                case Direction::FORWARD:
+                    str += "FORWARD ";
+                    break;
+                case Direction::BACKWARD:
+                    str += "BACKWARD ";
+                    break;
+                case Direction::LEFT:
+                    str += "LEFT ";
+                    break;
+                case Direction::RIGHT:
+                    str += "RIGHT ";
+                    break;
+            }
+        }
+        str += "\n";
+        return str;
+    }
+
 
 
 };
