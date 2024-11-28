@@ -10,6 +10,10 @@ KeyListener::KeyListener(): isRunning(true) {
 }
 
 KeyListener::~KeyListener() {
+    close();
+}
+
+void KeyListener::close() {
     endwin();
 }
 
@@ -55,6 +59,7 @@ void KeyListener::detectKeys() {
 
                 case ctrl('c'):
                     isRunning = false;
+                    close();
                     break;
             }
             message.setSpeed(speed);

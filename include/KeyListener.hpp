@@ -9,10 +9,10 @@
 
 class KeyListener {
 private:
-    const int SPEED_INCREMENT = 10;
+    const int SPEED_INCREMENT = 1;
     const int MAX_SPEED = 255;
     int previousKey = ERR;
-    uint8_t speed = 100;
+    uint8_t speed = 50;
     std::jthread keyDetectionThread;
     std::atomic<bool> isRunning{true};
     std::queue<Message> messageQueue;
@@ -21,6 +21,8 @@ private:
     void detectKeys();
 
     void updateSpeed(int ch);
+
+    void close();
 public:
     std::condition_variable cv;
 
