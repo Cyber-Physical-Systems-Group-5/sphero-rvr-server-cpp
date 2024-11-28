@@ -21,7 +21,7 @@ message ProtoMessage {
   bytes image = 2;
   uint32 speed = 3;
   uint32 distance = 4;
-  repeated Direction directions = 5;
-  repeated Direction camera_directions = 6;
-
+  uint32 battery_percentage=5;
+  repeated Direction directions = 6;
+  repeated Direction camera_directions = 7;
 }
