@@ -24,6 +24,7 @@ private:
     Type type;
     uint16_t distance;
     uint8_t speed;
+    uint8_t battery_percentage;
     std::vector<Direction> directions;
     std::vector<Direction> cameraDirections;
     std::optional<std::string> image;
@@ -85,19 +86,28 @@ public:
         Message::image = image;
     }
 
+    uint8_t getBatteryPercentage() const {
+        return battery_percentage;
+    }
+
+    void setBatteryPercentage(uint8_t batteryPercentage) {
+        battery_percentage = batteryPercentage;
+    }
+
     Message() = default;
 
     Message(uint8_t speed, std::vector<Direction> directions) : speed(speed), directions(std::move(directions)), image(std::nullopt) {}
 
     Message(uint8_t speed, std::vector<Direction> directions, std::optional<std::string> image) : speed(speed), directions(std::move(directions)), image(std::move(image)) {}
 
-    Message(Type type, uint16_t distance, uint8_t speed, std::vector<Direction> directions, std::vector<Direction> cameraDirections, std::optional<std::string> image) :
+    Message(Type type, uint16_t distance, uint8_t speed, std::vector<Direction> directions, std::vector<Direction> cameraDirections, std::optional<std::string> image, uint8_t battery_percentage) :
             type(type),
             distance(distance),
             speed(speed),
             directions(std::move(directions)),
             cameraDirections(std::move(cameraDirections)),
-            image(std::move(image)) {}
+            image(std::move(image)),
+            battery_percentage(battery_percentage){}
 
     /**
      * @brief Construct a new Message object from a JSON string
@@ -233,19 +243,21 @@ public:
         }
 
         uint8_t speed = message.speed();
+        uint8_t batteryPercentage = message.battery_percentage();
         uint16_t distance = message.distance();
         std::optional<std::string> image;
         if (!message.image().empty()) {
             image = message.image();
         }
 
-        return {messageType, distance, speed, directionsVector, cameraDirectionsVector, image};
+        return {messageType, distance, speed, directionsVector, cameraDirectionsVector, image, batteryPercentage};
     }
 
     std::string toProto() const {
         proto::ProtoMessage message;
         message.set_speed(speed);
         message.set_distance(distance);
+        message.set_battery_percentage(battery_percentage);
         switch (type) {
             case Type::COMMAND:
                 message.set_type(proto::ProtoMessage_MessageType_COMMAND);
@@ -310,6 +322,7 @@ public:
         }
         str += "Speed: " + std::to_string(speed) + "\n";
         str += "Distance: " + std::to_string(distance) + "\n";
+        str += "Battery Percentage: " + std::to_string(battery_percentage) + "\n";
         str += "Directions: ";
         for (const auto &direction : directions) {
             switch (direction) {
@@ -348,9 +361,6 @@ public:
         str += "\n";
         return str;
     }
-
-
-
 };
 
 #endif //RVR_SERVER_MESSAGE_HPP
