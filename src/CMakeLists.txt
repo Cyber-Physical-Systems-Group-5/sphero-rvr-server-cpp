@@ -6,12 +6,14 @@ set(headers
         "${includeDir}/CommunicationHandler.hpp"
         "${includeDir}/json.hpp"
         "${includeDir}/KeyListener.hpp"
+        "${includeDir}/ObjectDetector.hpp"
         "${srcDir}/util/Message.hpp"
 )
 
 set(sources
         "${srcDir}/CommunicationHandler.cpp"
         "${srcDir}/KeyListener.cpp"
+        "${srcDir}/ObjectDetector.cpp"
 )
 
 add_library(comm_handler "${headers}" "${sources}")
