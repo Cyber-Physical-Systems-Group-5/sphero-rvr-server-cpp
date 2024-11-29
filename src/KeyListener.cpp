@@ -22,6 +22,7 @@ void KeyListener::detectKeys() {
     while (isRunning) {
         Message message;
         if ((ch = getch()) != ERR) {
+            keyQueue.push(ch);
             updateSpeed(ch);
             previousKey = ch;
             switch (ch) {
@@ -83,6 +84,18 @@ Message KeyListener::getMessage() {
     return message;
 }
 
+char KeyListener::getKey() {
+    char key;
+    std::lock_guard<std::mutex> lock(mtx);
+    if (!keyQueue.empty()) {
+        key = keyQueue.front();
+        keyQueue.pop();
+    } else {
+        throw std::runtime_error("No key available");
+    }
+    return key;
+}
+
 void KeyListener::updateSpeed(int ch) {
     if (ch == previousKey && (ch == KEY_UP || ch == KEY_DOWN)) {
         speed = std::min(speed + SPEED_INCREMENT, MAX_SPEED);
@@ -96,7 +109,7 @@ std::mutex &KeyListener::getMtx() {
 }
 
 bool KeyListener::hasMessages() const {
-    return !messageQueue.empty();
+    return !messageQueue.empty() || !keyQueue.empty();
 }
 
 bool KeyListener::running() const {

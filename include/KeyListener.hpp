@@ -9,13 +9,14 @@
 
 class KeyListener {
 private:
-    const int SPEED_INCREMENT = 1;
+    const int SPEED_INCREMENT = 5;
     const int MAX_SPEED = 255;
     int previousKey = ERR;
     uint8_t speed = 50;
     std::jthread keyDetectionThread;
     std::atomic<bool> isRunning{true};
     std::queue<Message> messageQueue;
+    std::queue<char> keyQueue;
     std::mutex mtx;
 
     void detectKeys();
@@ -31,6 +32,8 @@ public:
     KeyListener();
 
     Message getMessage();
+
+    char getKey();
 
     bool hasMessages() const;
 
