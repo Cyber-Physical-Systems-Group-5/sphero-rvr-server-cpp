@@ -109,6 +109,38 @@ Message CommunicationHandler::getLatestMessage() {
     return message;
 }
 
+void CommunicationHandler::sendMessage(const std::vector<int> &coords) {
+    auto x = coords[0];
+    auto y = static_cast<int>(cameraHeight) - coords[1];
+    // compute relative x and y (-1 to 1), where 0,0 is the center of the camera
+    auto relative_x = (2 * static_cast<float>(x) - cameraWidth) / cameraWidth;
+    auto relative_y = (2 * static_cast<float>(y) - cameraWidth) / cameraWidth;
+    // compute displacement from the center
+    auto displacement = std::sqrt(relative_x * relative_x + relative_y * relative_y);
+    // compute angle from the center
+    auto angle = std::atan2(relative_y, relative_x);
+    // if displacement is greater than the threshold, move the robot
+    if (displacement > maxDisplacement) {
+        Message message;
+        message.setType(Type::COMMAND);
+        if (angle > -M_PI / 4 && angle < M_PI / 4) {
+            // move the robot right
+            message.addDirection(Direction::RIGHT);
+        } else if (angle > M_PI / 4 && angle < 3 * M_PI / 4) {
+            // move the camera up
+            message.addCameraDirection(Direction::FORWARD);
+        } else if (angle < -M_PI / 4 && angle > -3 * M_PI / 4) {
+            // move the camera down
+            message.addCameraDirection(Direction::BACKWARD);
+        } else {
+            // move the robot left
+            message.addDirection(Direction::LEFT);
+        }
+        // send the message
+        write(message);
+    }
+}
+
 bool CommunicationHandler::hasMessages() const {
     return !messageQueue.empty();
 }

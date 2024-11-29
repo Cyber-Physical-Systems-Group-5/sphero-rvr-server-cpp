@@ -1,7 +1,3 @@
-//
-// Created by kirk on 14/10/24.
-//
-
 #ifndef SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 #define SPHERO_RVR_SERVER_CPP_COMMHANDLER_HPP
 
@@ -11,6 +7,9 @@
 #include <thread>
 #include <queue>
 #include <condition_variable>
+
+#define CAMERA_WIDTH 320.0
+#define CAMERA_HEIGHT 240.0
 
 using namespace simple_socket;
 
@@ -51,7 +50,12 @@ private:
     std::jthread connectionThread;                  ///< Thread for handling incoming connections.
     std::atomic<bool> isRunning{true};              ///< Flag to indicate whether the thread is active.
     std::queue<Message> messageQueue;               ///< Queue for storing received messages.
-    std::mutex mtx;
+    std::mutex mtx;                                 ///< Mutex for synchronizing access to the message queue.
+
+    const float cameraWidth = CAMERA_WIDTH;
+    const float cameraHeight = CAMERA_HEIGHT;
+    const float maxDisplacement = 0.3;              ///< Maximum displacement from the center of the camera, measured as a fraction of the camera half-width.
+
 
     /**
      * @brief Handles incoming client connections and assigns them to the connection thread.
@@ -112,6 +116,18 @@ public:
      */
     bool hasMessages() const;
 
+    /**
+     * @brief Sends a moving command to the client based on the detected object's coordinates.
+     *
+     * @param coords The coordinates to send to the client.
+     */
+    void sendMessage(const std::vector<int> &coords);
+
+    /**
+     * @brief Retrieves the mutex used for synchronizing access to the message queue.
+     *
+     * @return The mutex used for synchronizing access to the message queue.
+     */
     std::mutex &getMtx();
 
     ~CommunicationHandler();
