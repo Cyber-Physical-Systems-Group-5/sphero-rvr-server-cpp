@@ -14,9 +14,10 @@ int main() {
     std::string yoloClassesPath = "/media/kirk/TOSHIBA/dev/project/sphero-rvr-server-cpp/data/coco.names";
     ObjectDetector objectDetector(yoloConfigPath, yoloWeightsPath, yoloClassesPath);
     std::atomic<bool> isRunning{true};
+    std::atomic<bool> autoPilot{false};
     std::cout << "Server started on port 8000" << std::endl;
     // start thread to listen for key presses and send commands
-    std::jthread keyListenerThread([&keyListener, &server, &isRunning] {
+    std::jthread keyListenerThread([&keyListener, &server, &isRunning, &autoPilot] {
         while (isRunning) {
             {
                 std::unique_lock<std::mutex> lock(keyListener.getMtx());
@@ -24,6 +25,12 @@ int main() {
             }
             while (keyListener.hasMessages()) {
                 auto keyMessage = keyListener.getMessage();
+                auto key = keyListener.getKey();
+                // toggle autopilot mode
+                if (key == 'q') {
+                    autoPilot = !autoPilot;
+                    std::cout << "AutoPilot: " << (autoPilot ? "ON" : "OFF") << std::endl;
+                }
                 server.write(keyMessage);
             }
         }
@@ -51,6 +58,9 @@ int main() {
 
                 cv::Mat image = cv::imdecode(imageBytes, cv::IMREAD_COLOR);
                 cv::Mat frame = objectDetector.detectObjects(image, coords, "bottle");
+                if (!coords.empty() && autoPilot) {
+                    server.sendMessage(coords);
+                }
                 cv::imshow("Received Image", frame);
                 cv::waitKey(1);
             }
