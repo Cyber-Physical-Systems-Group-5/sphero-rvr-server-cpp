@@ -7,6 +7,7 @@ option(BUILD_TESTS "Build tests" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(OpenCV_DIR "$ENV{OpenCV_DIR}")
 
+
 find_package(protobuf CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 find_package(Curses REQUIRED)
@@ -50,3 +51,7 @@ target_link_libraries(rvr_server PRIVATE ${OpenCV_LIBRARIES})
 target_link_libraries(rvr_server PRIVATE ${CURSES_LIBRARIES})
 
 file(COPY "data/" DESTINATION "${CMAKE_BINARY_DIR}/data")
+
+target_compile_definitions(rvr_server PRIVATE YOLO_CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/yolov7-tiny.cfg")
+target_compile_definitions(rvr_server PRIVATE YOLO_WEIGHTS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/yolov7-tiny.weights")
+target_compile_definitions(rvr_server PRIVATE YOLO_CLASSES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/coco.names")

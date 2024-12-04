@@ -9,10 +9,7 @@
 int main() {
     CommunicationHandler server(8000);
     KeyListener keyListener;
-    std::string yoloConfigPath = "/media/kirk/TOSHIBA/dev/project/sphero-rvr-server-cpp/data/yolov7-tiny.cfg";
-    std::string yoloWeightsPath = "/media/kirk/TOSHIBA/dev/project/sphero-rvr-server-cpp/data/yolov7-tiny.weights";
-    std::string yoloClassesPath = "/media/kirk/TOSHIBA/dev/project/sphero-rvr-server-cpp/data/coco.names";
-    ObjectDetector objectDetector(yoloConfigPath, yoloWeightsPath, yoloClassesPath);
+    ObjectDetector objectDetector(YOLO_CONFIG_PATH, YOLO_WEIGHTS_PATH, YOLO_CLASSES_PATH);
     std::atomic<bool> isRunning{true};
     std::atomic<bool> autoPilot{false};
     std::cout << "Server started on port 8000" << std::endl;
