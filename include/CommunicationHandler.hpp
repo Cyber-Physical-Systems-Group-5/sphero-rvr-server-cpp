@@ -35,10 +35,18 @@ using namespace simple_socket;
  *     LEFT = 3;
  *   }
  *
- *   bytes image = 1;
- *   uint32 speed = 2;
- *   repeated Direction directions = 3;
+ *   enum MessageType {
+ *    IMAGE = 0;
+ *    COMMAND = 1;
+ *   }
  *
+ *   MessageType type = 1;
+ *   bytes image = 2;
+ *   uint32 speed = 3;
+ *   uint32 distance = 4;
+ *   uint32 battery_percentage=5;
+ *   repeated Direction directions = 6;
+ *   repeated Direction camera_directions = 7;
  * }
  * ```
  * Any message not conforming to this Protocol Buffers schema will be disregarded or may cause parsing errors.
